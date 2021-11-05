@@ -658,6 +658,60 @@ doFitOutcomeModelPlus <- function(params) {
     args <- append(args, params$args$stratifyByPsAndCovariatesArgs)
     ps <- do.call("stratifyByPsAndCovariates", args)
   }
+  ## add by XL, change index date and corresponding variables for comparator cohort 
+  ##########################################################
+ps <- matchedPop2
+pairs <- dcast(ps,  stratumId ~ treatment,  value.var = "personSeqId")
+names(pairs) <- c("stratumId","comparator","target")
+pairs$self.match <- ifelse(pairs2$comparator == pairs2$target,1,0)
+# sum(pairs$self.match)*100/length(pairs$self.match)    # 6%
+
+#seprate the target cohort
+target.co <- ps %>% filter(treatment==1) %>% select(stratumId, cohortStartDate) 
+# vaccine date as index date
+edit.co <- ps %>% 
+  left_join(rename(target.co,  cohortStartDateVAX = cohortStartDate), by="stratumId") %>% 
+  mutate(days.idx.move = cohortStartDateVAX - cohortStartDate) %>% 
+  left_join(pairs, by = "stratumId")
+
+elig.comp <-  edit.co %>% 
+  filter(treatment==0) %>% 
+  mutate( co.end.before.vax = if_else(cohortStartDateVAX >= cohortStartDate + daysToCohortEnd,1,0),
+          event.before.vax = if_else(outcomeCount != 0 & cohortStartDateVAX >= cohortStartDate + daysToEvent , 1, 0)) 
+
+# with(elig.comp, table(co.end.before.vax,event.before.vax, self.match))
+# with(elig.comp, table(co.end.before.vax,event.before.vax, self.match,outcomeCount))
+
+elig.comp.all <- elig.comp %>% 
+  filter(self.match ==0 & co.end.before.vax ==0 & event.before.vax==0)
+
+# sum(elig.comp.all$outcomeCount !=0) #187
+
+# edit the index date and other covars 
+
+elig.comp.all <- elig.comp.all %>% 
+  mutate(cohortStartDate.new = cohortStartDateVAX,
+         daysFromObsStart.new = daysFromObsStart + days.idx.move,
+         daysToObsEnd.new = daysToObsEnd - days.idx.move,
+         daysToCohortEnd.new = pmin(28,daysToCohortEnd - days.idx.move),
+         daysToEvent.new = case_when(outcomeCount != 0 & event.before.vax != 1 ~ as.integer(daysToEvent - days.idx.move))) %>%
+  mutate(
+    riskEnd.new = pmin(28,daysToObsEnd.new, daysToCohortEnd.new),
+    timeAtRisk.new = riskEnd.new - riskStart + 1,
+    survivalTime.new = if_else(is.na(daysToEvent.new),timeAtRisk.new, pmin(timeAtRisk.new,daysToEvent.new + 1)))%>% 
+  mutate(cohortStartDate = cohortStartDate.new,
+         daysFromObsStart = daysFromObsStart.new,
+         survivalTime = survivalTime.new,
+         timeAtRisk = timeAtRisk.new)
+
+elig.target <- edit.co %>% filter(treatment ==1 )%>% 
+  inner_join(select(elig.comp.all, stratumId),by="stratumId")
+
+matchedPop.final <- bind_rows(elig.comp.all,elig.target)
+matchedPop.final <- matchedPop.final[, names(matchedPop.final) %in% names(ps) ]
+#attributes(matchedPop.final)$metaData$attrition 
+ps <- matchedPop.final 
+##########################################################
   args <- params$args$fitOutcomeModelArgs
   args$population <- ps
   args$cohortMethodData <- cohortMethodData
