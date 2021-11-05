@@ -28,6 +28,7 @@
 #' @importFrom utils setTxtProgressBar txtProgressBar read.csv
 #' @importFrom graphics text
 #' @importFrom rlang .data
+#' @importFrom reshape2 dcast
 #' @import Cyclops
 #' @import DatabaseConnector
 #' @import FeatureExtraction
