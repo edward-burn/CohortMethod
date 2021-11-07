@@ -660,7 +660,6 @@ doFitOutcomeModelPlus <- function(params) {
   }
   ## add by XL, change index date and corresponding variables for comparator cohort 
   ##########################################################
-ps <- matchedPop2
 pairs <- reshape2::dcast(ps,  stratumId ~ treatment,  value.var = "personSeqId")
 names(pairs) <- c("stratumId","comparator","target")
 pairs$self.match <- ifelse(pairs2$comparator == pairs2$target,1,0)
