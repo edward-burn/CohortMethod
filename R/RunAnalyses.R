@@ -103,7 +103,8 @@
 #' outcome model files can be found, relative to the `outputFolder`.
 #'
 #' @export
-runCmAnalyses <- function(connectionDetails,
+runCmAnalyses <- function(connection=NULL,
+                          connectionDetails,
                           cdmDatabaseSchema,
                           oracleTempSchema = NULL,
                           tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
@@ -187,7 +188,8 @@ runCmAnalyses <- function(connectionDetails,
       }
       getDbCohortMethodDataArgs$covariateSettings <- covariateSettings
       outcomeIds <- unique(referenceTable$outcomeId[referenceTable$cohortMethodDataFile == refRow$cohortMethodDataFile])
-      args <- list(connectionDetails = connectionDetails,
+      args <- list(connection = connection,
+                   connectionDetails = connectionDetails,
                    cdmDatabaseSchema = cdmDatabaseSchema,
                    tempEmulationSchema = tempEmulationSchema,
                    exposureDatabaseSchema = exposureDatabaseSchema,
