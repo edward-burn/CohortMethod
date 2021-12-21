@@ -156,7 +156,7 @@ getDbCohortMethodData <- function(connectionDetails,
     stop("removeDuplicateSubjects should have value \"keep all\", \"keep first\", or \"remove all\".")
   ParallelLogger::logTrace("Getting cohort method data for target ID ", targetId, " and comparator ID ", comparatorId)
 
-  if((is.null(connection)){
+  if(is.null(connection)){
   connection <- DatabaseConnector::connect(connectionDetails)
   on.exit(DatabaseConnector::disconnect(connection))
   }
